@@ -185,12 +185,10 @@
     </div>
 
     <script>
-        const apiKey = 'API_KEY'; // Placeholder for API Key
-
+        const apiKey = process.env.API_KEY; // Replace with environment variable
         let refreshInterval = null; // To store the interval ID
         let previousCount = null; // To store the previous subscriber count
         let goal = 460; // Default goal
-
         const settingsPanel = document.getElementById('settingsPanel');
         const countElement = document.getElementById('count');
         const congratulationsElement = document.getElementById('congratulations');
@@ -249,126 +247,127 @@
                 countElement.classList.remove('count-up', 'count-down');
             }, 500); // Match this with the CSS transition duration
 
-                if (newCount >= goal) {
-                    showConfetti();
-                    showCongratulations(newCount);
+            if (newCount >= goal) {
+                showConfetti();
+                showCongratulations(newCount);
+            }
+        }
+
+        function showCongratulations(subCount) {
+            const rewardText = document.getElementById('rewardText').value;
+            if (subCount >= goal) {
+                congratulationsElement.innerText = `${rewardText} ${formatNumber(subCount)} subscribers!`;
+            } else {
+                congratulationsElement.innerText = '';
+            }
+        }
+
+        function showConfetti() {
+            const confettiContainer = document.getElementById('confetti');
+            confettiContainer.innerHTML = ''; // Clear previous confetti
+            confettiContainer.style.display = 'block';
+
+            for (let i = 0; i < 100; i++) {
+                const confettiPiece = document.createElement('div');
+                confettiPiece.className = 'confetti-piece';
+                confettiPiece.style.left = Math.random() * 100 + '%';
+                confettiPiece.style.top = Math.random() * 100 + '%';
+                confettiPiece.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confettiContainer.appendChild(confettiPiece);
+            }
+
+            setTimeout(() => {
+                confettiContainer.style.display = 'none';
+            }, 2000); // Hide confetti after 2 seconds
+        }
+
+        function toggleFullScreen() {
+            const fullScreenMode = document.body.classList.toggle('fullscreen-active');
+            const exitButton = document.createElement('button');
+            exitButton.className = 'exit-fullscreen-button';
+            exitButton.onclick = () => {
+                document.body.classList.remove('fullscreen-active');
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                // Reset to main menu view
+                document.getElementById('controls').style.display = 'flex';
+                document.getElementById('count').style.fontSize = '4em';
+                document.getElementById('congratulations').style.fontSize = '1.5em';
+                if (document.body.contains(exitButton)) {
+                    document.body.removeChild(exitButton);
+                }
+            };
+
+            const controls = document.getElementById('controls');
+            const countElement = document.getElementById('count');
+            const congratulationsElement = document.getElementById('congratulations');
+
+            if (fullScreenMode) {
+                // Enter full screen mode
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                }
+                controls.style.display = 'none';
+                countElement.style.fontSize = '6em'; // Increased font size for full screen
+                congratulationsElement.style.fontSize = '2em'; // Increased font size for full screen
+                document.body.appendChild(exitButton);
+            } else {
+                // Exit full screen mode
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                controls.style.display = 'flex';
+                countElement.style.fontSize = '4em'; // Default font size
+                congratulationsElement.style.fontSize = '1.5em'; // Default font size
+                if (document.body.contains(exitButton)) {
+                    document.body.removeChild(exitButton);
                 }
             }
+        }
 
-            function showCongratulations(subCount) {
-                const rewardText = document.getElementById('rewardText').value;
-                if (subCount >= goal) {
-                    congratulationsElement.innerText = `${rewardText} ${formatNumber(subCount)} subscribers!`;
-                } else {
-                    congratulationsElement.innerText = '';
-                }
+        function toggleSettings() {
+            const settingsPanel = document.getElementById('settingsPanel');
+            settingsPanel.classList.toggle('active');
+        }
+
+        function applySettings() {
+            const refreshTime = parseInt(document.getElementById('refreshTime').value, 10) * 1000;
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const rewardText = document.getElementById('rewardText').value;
+            const newGoal = parseInt(document.getElementById('goal').value, 10);
+
+            if (!isNaN(refreshTime) && refreshTime > 0) {
+                stopAutoRefresh();
+                refreshInterval = setInterval(fetchSubCount, refreshTime);
             }
 
-            function showConfetti() {
-                const confettiContainer = document.getElementById('confetti');
-                confettiContainer.innerHTML = ''; // Clear previous confetti
-                confettiContainer.style.display = 'block';
+            document.body.style.backgroundColor = bgColor;
+            countElement.style.color = textColor;
+            congratulationsElement.style.color = textColor;
+            goal = newGoal;
 
-                for (let i = 0; i < 100; i++) {
-                    const confettiPiece = document.createElement('div');
-                    confettiPiece.className = 'confetti-piece';
-                    confettiPiece.style.left = Math.random() * 100 + '%';
-                    confettiPiece.style.top = Math.random() * 100 + '%';
-                    confettiPiece.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                    confettiContainer.appendChild(confettiPiece);
-                }
+            toggleSettings();
+        }
 
-                setTimeout(() => {
-                    confettiContainer.style.display = 'none';
-                }, 2000); // Hide confetti after 2 seconds
+        function startAutoRefresh() {
+            if (refreshInterval) return; // Prevent multiple intervals
+            fetchSubCount(); // Initial fetch
+            refreshInterval = setInterval(fetchSubCount, 30000); // Update every 30 seconds
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
             }
+        }
 
-            function toggleFullScreen() {
-                const fullScreenMode = document.body.classList.toggle('fullscreen-active');
-                const exitButton = document.createElement('button');
-                exitButton.className = 'exit-fullscreen-button';
-                exitButton.onclick = () => {
-                    document.body.classList.remove('fullscreen-active');
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                    // Reset to main menu view
-                    document.getElementById('controls').style.display = 'flex';
-                    document.getElementById('count').style.fontSize = '4em';
-                    document.getElementById('congratulations').style.fontSize = '1.5em';
-                    if (document.body.contains(exitButton)) {
-                        document.body.removeChild(exitButton);
-                    }
-                };
-                const controls = document.getElementById('controls');
-                const countElement = document.getElementById('count');
-                const congratulationsElement = document.getElementById('congratulations');
-
-                if (fullScreenMode) {
-                    // Enter full screen mode
-                    if (document.documentElement.requestFullscreen) {
-                        document.documentElement.requestFullscreen();
-                    }
-                    controls.style.display = 'none';
-                    countElement.style.fontSize = '6em'; // Increased font size for full screen
-                    congratulationsElement.style.fontSize = '2em'; // Increased font size for full screen
-                    document.body.appendChild(exitButton);
-                } else {
-                    // Exit full screen mode
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                    controls.style.display = 'flex';
-                    countElement.style.fontSize = '4em'; // Default font size
-                    congratulationsElement.style.fontSize = '1.5em'; // Default font size
-                    if (document.body.contains(exitButton)) {
-                        document.body.removeChild(exitButton);
-                    }
-                }
-            }
-
-            function toggleSettings() {
-                const settingsPanel = document.getElementById('settingsPanel');
-                settingsPanel.classList.toggle('active');
-            }
-
-            function applySettings() {
-                const refreshTime = parseInt(document.getElementById('refreshTime').value, 10) * 1000;
-                const bgColor = document.getElementById('bgColor').value;
-                const textColor = document.getElementById('textColor').value;
-                const rewardText = document.getElementById('rewardText').value;
-                const newGoal = parseInt(document.getElementById('goal').value, 10);
-
-                if (!isNaN(refreshTime) && refreshTime > 0) {
-                    stopAutoRefresh();
-                    refreshInterval = setInterval(fetchSubCount, refreshTime);
-                }
-
-                document.body.style.backgroundColor = bgColor;
-                countElement.style.color = textColor;
-                congratulationsElement.style.color = textColor;
-                goal = newGoal;
-
-                toggleSettings();
-            }
-
-            function startAutoRefresh() {
-                if (refreshInterval) return; // Prevent multiple intervals
-                fetchSubCount(); // Initial fetch
-                refreshInterval = setInterval(fetchSubCount, 30000); // Update every 30 seconds
-            }
-
-            function stopAutoRefresh() {
-                if (refreshInterval) {
-                    clearInterval(refreshInterval);
-                    refreshInterval = null;
-                }
-            }
-
-            // Start auto-refresh by default
-            startAutoRefresh();
-        </script>
-    </body>
+        // Start auto-refresh by default
+        startAutoRefresh();
+    </script>
+</body>
 </html>
 
 
